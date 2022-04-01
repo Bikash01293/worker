@@ -120,9 +120,6 @@ func NewPrinter() *Printer {
 
 // Work waits for a few seconds and print a received URL.
 func (p *Printer) Work(j *WorkData) {
-	// t := time.NewTimer(time.Duration(rand.Intn(5)) * time.Second)
-	// defer t.Stop()
-	// <-t.C
 	fmt.Printf("Name: %s\nCity: %s\nWorkdays: %d\nSalary: %d\n",j.Name, j.City, j.WorkDays, j.Salary)
 }
 
