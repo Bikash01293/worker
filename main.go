@@ -123,7 +123,6 @@ func (p *Printer) Work(j *WorkData) {
 	fmt.Printf("Name: %s\nCity: %s\nWorkdays: %d\nSalary: %d\n\nI am done with my work !",j.Name, j.City, j.WorkDays, j.Salary)
 }
 
-// var WorkerQueue chan chan WorkData
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
