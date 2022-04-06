@@ -120,7 +120,7 @@ func NewPrinter() *Printer {
 
 // Work waits for a few seconds and print a received URL.
 func (p *Printer) Work(j *WorkData) {
-	fmt.Printf("Name: %s\nCity: %s\nWorkdays: %d\nSalary: %d\n",j.Name, j.City, j.WorkDays, j.Salary)
+	fmt.Printf("Name: %s\nCity: %s\nWorkdays: %d\nSalary: %d\n\nI am done with my work !",j.Name, j.City, j.WorkDays, j.Salary)
 }
 
 // var WorkerQueue chan chan WorkData
