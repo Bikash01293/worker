@@ -36,8 +36,6 @@ func (d *Dispatcher) collector(w http.ResponseWriter, r *http.Request) {
 
 	
 		d.Add(wd)
-	
-
 }
 
 type Worker interface {
@@ -98,11 +96,11 @@ Loop:
 		case job := <-d.jobBuffer:
 			// Increment the waitgroup
 			wg.Add(1)
-			// Decrement a semaphore count
-			d.sem <- struct{}{}
+			// Incrementing a semaphore count
+			d.sem <- struct{}{} 
 			go func(job *WorkData) {
 				defer wg.Done()
-				// After the job finished, increment a semaphore count
+				// After the job finished, decremented a semaphore count
 				defer func() { <-d.sem }()
 				d.worker.Work(job)
 			}(job)
