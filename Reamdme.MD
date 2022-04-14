@@ -1,21 +1,18 @@
-Steps to start with the worker job :-
+1. To build the application , run the following command:
 
-step 1: write the command as 
+    go build *.go
 
-go run .
+2. Hence to run the worker pool, run the command as:
 
-step 2: send the request body from the postman, the sample of it is given below:
+    go run .
 
-    {
-    "name": "Marry",
-    "city": "Torronto",
-    "workdays": 28,
-    "salary": 205
-    }
+Now, the code snippet can be followed to have a better glimse:
 
-    use POST method.
+WorkData - to hold the work request
 
-step 3: Finally you can see the worker dispathes the work and prints out the work request.
+Dispather - this struct holds the semaphore to restrict the number of goroutines, jobBuffer channel to insert or release the job request, worker interface to perfom the work on the work function and waitgroup to simulate the work of go routines.
+
+Printer - method is used to finally print the work request.
 
 
-
+    
