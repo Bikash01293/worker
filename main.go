@@ -1,3 +1,4 @@
+// switched to new-branch
 package main
 
 import (
@@ -145,7 +146,7 @@ Loop:
 				defer func() { <-d.sem }()
 
 				d.worker.Work(job)
-				fmt.Printf("\n\nworker %d done the work\n\n", len(d.sem))
+				fmt.Printf("\n\nworker %d done the work and ready to accept a new work.\n\n", len(d.sem))
 			}(job)
 		}
 	}
