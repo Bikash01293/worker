@@ -3,77 +3,37 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"sync"
 	"syscall"
 	"time"
 )
 
+type Emailst func()
+
 type WorkData struct {
-	Name     string `json:"Name"`
-	City     string `json:"City"`
-	WorkDays int    `json:"Workdays"`
-	Salary   int    `json:"Salary"`
-	Delay    string `json:"Delay"`
-}
-type WorkRequest struct {
-	Name      string
-	City      string
-	WorkDays  int
-	Salary    int
-	Delaytime time.Duration
+	emailreq Emailst
 }
 
-func (d *Dispatcher) Collector(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		w.Header().Set("allow", "POST")
-		w.WriteHeader(http.StatusMethodNotAllowed)
+func (d *Dispatcher) Collector(emfunc func()) {
+
+	work := WorkData{
+		emailreq: emfunc,
 	}
 
-	decoder := json.NewDecoder(r.Body)
-	var wd *WorkData
-	err := decoder.Decode(&wd)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	// Parse the delay.
-	delay, err := time.ParseDuration(wd.Delay)
-	if err != nil {
-		http.Error(w, "Bad delay value: "+err.Error(), http.StatusBadRequest)
-		return
-	}
-	// Check to make sure the delay is anywhere from 1 to 10 seconds.
-	if delay.Seconds() < 1 || delay.Seconds() > 10 {
-		http.Error(w, "The delay must be between 1 and 10 seconds, inclusively.", http.StatusBadRequest)
-		return
-	}
-
-	work := WorkRequest{
-		Name:      wd.Name,
-		City:      wd.City,
-		WorkDays:  wd.WorkDays,
-		Salary:    wd.Salary,
-		Delaytime: delay,
-	}
-
-	w.Header().Set("content-type", "application/json")
-	json.NewEncoder(w).Encode(wd)
-	
 	d.Add(&work)
 }
 
 type Worker interface {
-	Work(j *WorkRequest)
+	Work(j *WorkData)
 }
 
 type Dispatcher struct {
 	sem       chan struct{} // semaphore
-	jobBuffer chan *WorkRequest
+	jobBuffer chan *WorkData
 	worker    Worker
 	wg        sync.WaitGroup
 }
@@ -96,7 +56,7 @@ func NewDispatcher(p *Printer, maxWorkers int, buffers int) *Dispatcher {
 
 		// Restrict the number of goroutine using buffered channel (as counting semaphor)
 		sem:       make(chan struct{}, maxWorkers),
-		jobBuffer: make(chan *WorkRequest, buffers),
+		jobBuffer: make(chan *WorkData, buffers),
 		worker:    p,
 	}
 }
@@ -117,8 +77,11 @@ func (d *Dispatcher) Wait() {
 // Add enqueues a job into the queue.
 // If the number of enqueued jobs has already reached to the maximum size,
 // this will block until the other job has finish and the queue has space to accept a new job.
-func (d *Dispatcher) Add(job *WorkRequest) {
+func (d *Dispatcher) Add(job *WorkData) {
+
 	d.jobBuffer <- job
+	time.Sleep(3 * time.Second)
+
 }
 
 func (d *Dispatcher) stop() {
@@ -126,7 +89,6 @@ func (d *Dispatcher) stop() {
 }
 
 func (d *Dispatcher) loop(ctx context.Context) {
-	// var wg sync.WaitGroup
 Loop:
 	for {
 		select {
@@ -139,14 +101,14 @@ Loop:
 			d.wg.Add(1)
 			// Incrementing a semaphore count
 			d.sem <- struct{}{}
-			fmt.Printf("\n\nPlease wait worker %d is perfoming the work...\n\n", len(d.sem))
-			go func(job *WorkRequest) {
+			fmt.Printf("\n\nPlease wait worker %d is perfoming the work...\n", len(d.sem))
+			go func(job *WorkData) {
 				defer d.wg.Done()
 				// After the job finished, decremented a semaphore count
 				defer func() { <-d.sem }()
 
 				d.worker.Work(job)
-				fmt.Printf("\n\nworker %d done the work and ready to accept a new work.\n\n", len(d.sem))
+				fmt.Printf("worker %d done the work and ready to accept a new work.\n", len(d.sem))
 			}(job)
 		}
 	}
@@ -161,10 +123,11 @@ func NewPrinter() *Printer {
 }
 
 // Work waits for a few seconds and print a received URL.
-func (p *Printer) Work(j *WorkRequest) {
-	fmt.Printf("Wait for %s to complete the work\n", j.Delaytime)
-	time.Sleep(j.Delaytime)
-	fmt.Printf("Name: %s\nCity: %s\nWorkdays: %d\nSalary: %d\n", j.Name, j.City, j.WorkDays, j.Salary)
+func (p *Printer) Work(j *WorkData) {
+	fmt.Println("Wait for 2 second to complete the work")
+	time.Sleep(2 * time.Second)
+	j.emailreq()
+
 }
 
 func main() {
@@ -184,7 +147,7 @@ func main() {
 	fmt.Print("Please enter the maximum number of workers and if you want to use the default value for maximum worker then please press 0: ")
 	fmt.Scanf("%d", &maxNumWorkers)
 	if maxNumWorkers == 0 {
-		maxNumWorkers = 4
+		maxNumWorkers = runtime.GOMAXPROCS(1)
 	}
 	for i := 0; i < maxNumWorkers; i++ {
 		fmt.Println("Starting worker", i+1)
@@ -194,10 +157,8 @@ func main() {
 	p := NewPrinter()
 	d := NewDispatcher(p, maxNumWorkers, maxNumWorkers+1)
 	d.Start(ctx)
-	http.HandleFunc("/collector", d.Collector)
-	//starting the web server to listen for the request.
-	fmt.Println("server is starting...")
-	if err := http.ListenAndServe("127.0.0.1:8080", nil); err != nil {
-		fmt.Println(err.Error())
+	for i := 0; i < 10; i++ {
+		d.Collector(Email)
 	}
+
 }
