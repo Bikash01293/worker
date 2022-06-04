@@ -1,6 +1,6 @@
 // switched to new-branch
 
-package work
+package main
 
 import (
 	"context"
@@ -131,7 +131,7 @@ func (p *Printer) Work(j *WorkData) {
 
 }
 
-func Workerpool() {
+func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	sigCh := make(chan os.Signal, 1)
